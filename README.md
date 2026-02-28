@@ -2,23 +2,33 @@
 
 > Concept & Architecture: **Antonio Cittadino** | 2026
 
-City Cat è una piattaforma mobile-first per la gestione di comunità feline urbane: adozioni, volontariato, grifoni, colonie, segnalazioni e molto altro.
+City Cat è una piattaforma **web mobile-first** per la gestione di comunità feline urbane: adozioni, volontariato, staffette, colonie, segnalazioni e molto altro.
+
+> 📖 **Stato dell'arte completo:** [`docs/stato-arte-ui.md`](docs/stato-arte-ui.md)
+> 🔄 **Piano rimozione mock:** [`docs/piano-rimozione-mock.md`](docs/piano-rimozione-mock.md)
+> 📋 **Spec UI per ruolo:** [`docs/SPEC_UI_ROLES.md`](docs/SPEC_UI_ROLES.md)
 
 ---
 
 ## 📐 Tech Stack
 
-| Layer | Tecnologia |
-|---|---|
-| Framework | React 18 + TypeScript |
-| Build | Vite |
-| Styling | Tailwind CSS + shadcn/ui |
-| State | Zustand (persist) |
-| Routing | React Router v6 |
-| HTTP Client | Axios |
-| i18n | i18next + browser detection |
-| Animations | Framer Motion |
-| UI Components | shadcn/ui + Lucide icons |
+| Layer | Tecnologia | Note |
+|---|---|---|
+| Framework | **React 18 + TypeScript** | Web app (non React Native) |
+| Build | Vite 5 | SWC, HMR |
+| Styling | Tailwind CSS 3 + shadcn/ui | Radix UI primitives |
+| State (UI/auth) | Zustand (persist) | 20 store — tutti con mock attivi |
+| State (server) | TanStack Query | Installato — da usare per API reali |
+| Routing | React Router v6 | 46 route |
+| HTTP Client | Axios + apiRequest wrapper | Gated da `VITE_DEMO_MODE` |
+| i18n | i18next + browser detection | IT/EN |
+| Animations | Framer Motion | Page transitions |
+| UI Components | shadcn/ui + Lucide | Full Radix set |
+| Forms | react-hook-form + Zod | Validazione client-side |
+| Charts | Recharts | Dashboard e statistiche |
+| Testing | Vitest + Testing Library | Configurato, test da scrivere |
+
+> ⚠️ **DEMO_MODE attivo**: `VITE_DEMO_MODE=true` nel `.env` → tutte le chiamate API ritornano dati mock locali. Nessuna chiamata raggiunge il backend. Vedere `docs/piano-rimozione-mock.md` per il percorso di integrazione.
 
 ---
 
@@ -26,128 +36,189 @@ City Cat è una piattaforma mobile-first per la gestione di comunità feline urb
 
 ```
 src/
-├── api/              # Client HTTP, tipi TypeSafe, mock data
-├── assets/           # Immagini gatti, logo, hero
+├── api/
+│   ├── client.ts          # apiRequest<T> con isDemoMode() gate e fallback
+│   ├── index.ts           # Endpoint API organizzati per dominio
+│   ├── mockData.ts        # Dati mock per DEMO_MODE (da rimuovere in Fase 9)
+│   └── types.ts           # Tipi TypeScript: CatProfile, UserProfile, etc.
+├── assets/                # Immagini gatti, logo, hero
 ├── components/
-│   ├── BottomNav.tsx          # Nav bar mobile con filtro feature flags
-│   ├── BetaFeedbackFab.tsx    # FAB segnalazioni beta (tutte le viste)
-│   ├── DemoBanner.tsx         # Indicatore DEMO_MODE
-│   ├── GlobalHeader.tsx       # Header con switch ruolo + notifiche
-│   ├── ListFilter.tsx         # Smart filter riutilizzabile (search + chips + drawer)
-│   ├── NotificationDrawer.tsx # Drawer notifiche
-│   ├── PageTransition.tsx     # Animazioni pagina
-│   ├── RoleFeaturesDialog.tsx # Dialog benvenuto ruolo con stato feature flags
-│   ├── RoutineLine.tsx        # Timeline adozione
-│   └── ui/                    # shadcn components
+│   ├── BottomNav.tsx      # Nav bar mobile con filtro feature flags
+│   ├── BetaFeedbackFab.tsx
+│   ├── DemoBanner.tsx     # Indicatore DEMO_MODE visibile in UI
+│   ├── GlobalHeader.tsx   # Header con switch ruolo + notifiche
+│   ├── ListFilter.tsx     # Smart filter (search + chips + drawer)
+│   ├── NotificationDrawer.tsx
+│   ├── PageTransition.tsx
+│   ├── RoleFeaturesDialog.tsx
+│   ├── RoutineLine.tsx    # Timeline adozione
+│   └── ui/                # shadcn components (Radix)
 ├── hooks/
-│   ├── useFeatureFlagNav.ts   # Hook filtro navigazione per feature flags
+│   ├── useFeatureFlagNav.ts
 │   └── use-mobile.tsx
 ├── i18n/
-│   └── locales/{it,en}.json   # Traduzioni IT/EN
+│   └── locales/{it,en}.json
 ├── lib/
-│   ├── catPhotos.ts       # Mapping foto gatti
-│   ├── mockUsers.ts       # Utenti mock multi-ruolo
-│   ├── roleFeatures.ts   # Feature per ruolo con path mapping
-│   ├── roles.ts           # 12 ruoli, nav configs, colori
+│   ├── mockUsers.ts       # ⚠️ 10 utenti hardcodati — rimosso in Fase 1
+│   ├── roles.ts           # 12 ruoli: ROLES const, ROLE_META, ROLE_BOTTOM_NAV
+│   ├── roleFeatures.ts    # Feature flags per ruolo con path mapping
+│   ├── catPhotos.ts
 │   └── utils.ts
-├── stores/
-│   ├── authStore.ts           # Auth + switch ruolo (persist)
-│   ├── usersStore.ts          # CRUD utenti + audit log
-│   ├── adoptionStore.ts       # Domande adozione
-│   ├── auditStore.ts          # Log immutabile azioni admin
-│   ├── featureFlagStore.ts    # Feature flags per ruolo (persist)
-│   ├── feedbackStore.ts       # Segnalazioni beta con debug context
-│   ├── municipalityStore.ts   # Colonie + segnalazioni
-│   ├── notificationStore.ts   # Notifiche + broadcast
-│   └── volunteerStore.ts      # Task volontari
-├── pages/
-│   ├── Index.tsx              # Login / Registrazione + Quick Demo
-│   ├── Dashboard.tsx          # Dashboard admin con KPI + default ruolo
-│   ├── Cats.tsx / CatDetail.tsx # Catalogo gatti + dettaglio
-│   ├── AdoptionWizard.tsx     # Wizard adozione 4 step
-│   ├── MyAdoptions.tsx        # Le mie adozioni con timeline
-│   ├── ShelterCampaigns.tsx   # Campagne rifugio + review domande
-│   ├── VolunteerTasks.tsx     # Kanban task volontari (swipe)
-│   ├── VolunteerCalendar.tsx  # Calendario disponibilità
-│   ├── RelayLegs.tsx          # Staffette con conferma + foto
-│   ├── TerritorialMap.tsx     # Mappa colonie feline
-│   ├── MunicipalityStats.tsx  # Statistiche comune
-│   ├── MunicipalityReports.tsx # Gestione segnalazioni
-│   ├── AdminUsers.tsx         # Gestione utenti (CRUD + ruoli)
-│   ├── AuditLog.tsx           # Log audit admin
-│   ├── AdminBroadcast.tsx     # Annunci broadcast + storico
-│   ├── AdminFeedback.tsx      # Viewer segnalazioni beta
-│   ├── FeatureFlags.tsx       # Feature flags per ruolo
-│   ├── Settings.tsx           # Profilo, lingua, password
-│   ├── Setup.tsx              # Wizard setup guidato
-│   └── ComingSoon.tsx         # Placeholder sezioni future
-└── App.tsx                    # Router + BetaFeedbackFab globale
+├── pages/                 # 46 pagine (vedi sezione dedicata)
+├── stores/                # 20 store Zustand (vedi sezione dedicata)
+└── App.tsx                # Router con 46 route + AnimatedRoutes + QueryClientProvider
 ```
 
 ---
 
-## 🚦 Feature Implementate
+## 📄 Pagine Implementate (46)
 
-### 🔐 Autenticazione & Ruoli
-- Login/Register mock con validazione e toast
-- 12 ruoli: Adottante, Volontario, Rifugio, Comune, Veterinario, Comportamentalista, Cat Sitter, Staffettista, Famiglia Affido, Allevatore, Artigiano, Admin
-- Switch ruolo in-app dal header
-- Quick Demo Access per test rapido ruoli
-- Navigazione filtrata per ruolo (bottom nav + expanded grid)
+### 🔐 Auth & Setup
+| Pagina | File | Note |
+|---|---|---|
+| Login / Registrazione | `Index.tsx` | Mock auth — Fase 1 |
+| Setup guidato | `Setup.tsx` | Wizard onboarding |
+| Impostazioni | `Settings.tsx` | Profilo, lingua, password |
 
-### 🐱 Gestione Gatti
-- Catalogo con foto reali, filtri (razza, sesso, vaccinazione)
-- Dettaglio gatto completo
-- Wizard adozione 4 step (Alloggio → Stile di vita → Esperienza → Motivazione)
-- Le mie adozioni con timeline visiva
+### 🐱 Catalogo Gatti
+| Pagina | File | Note |
+|---|---|---|
+| Catalogo | `Cats.tsx` | Filtri: razza, sesso, vaccinazione |
+| Dettaglio gatto | `CatDetail.tsx` | Profilo completo con behavioral profile |
+| Cartella clinica | `CatHealthRecord.tsx` | Ruoli: vet, shelter |
+| Gestione gatti (shelter) | `ShelterCatManagement.tsx` | CRUD rifugio |
 
-### 👥 Volontariato
-- Kanban task con swipe gesture (Todo → In Progress → Done)
-- Calendario disponibilità interattivo
-- Staffette con conferma leg + upload foto
+### 💜 Adozione
+| Pagina | File | Note |
+|---|---|---|
+| Wizard adozione | `AdoptionWizard.tsx` | 4 step: alloggio → stile → esperienza → motivazione |
+| Le mie adozioni | `MyAdoptions.tsx` | Timeline + stato |
+| Abbinamento | `MatchingWizard.tsx` | Algoritmo compatibilità |
+| Automazioni ricerca | `SearchAutomations.tsx` | Alert email/push |
+| Candidatura affido | `FosterApply.tsx` | Ruolo: fosterFamily |
 
-### 🏛️ Comune
-- Mappa territoriale colonie
-- Statistiche con grafici Recharts
-- Gestione segnalazioni con stati e note operatore
+### 🤝 Volontariato
+| Pagina | File | Note |
+|---|---|---|
+| Task kanban | `VolunteerTasks.tsx` | Swipe gesture |
+| Calendario | `VolunteerCalendar.tsx` | Disponibilità |
+| Staffette | `RelayLegs.tsx` | Conferma leg + foto |
+| Profilo volontario | `VolunteerProfile.tsx` | |
 
 ### 🏠 Rifugio
-- Dashboard campagne adozione
-- Review e approvazione/rifiuto domande
+| Pagina | File | Note |
+|---|---|---|
+| Campagne adozione | `ShelterCampaigns.tsx` | Review domande |
+| Profilo rifugio | `ShelterProfile.tsx` | |
 
-### ⚙️ Amministrazione
-- **Gestione utenti**: CRUD con assegnazione ruoli
-- **Audit log**: Log immutabile di tutte le azioni admin
-- **Broadcast**: Annunci di sistema con targeting per ruolo + storico con filtri data/tipo
-- **Feature flags**: Toggle feature per ruolo con effetto su navigazione e dialog
-- **Feedback beta viewer**: Lista segnalazioni con debug context espandibile
-- **Dashboard admin**: KPI (utenti, gatti, adozioni, segnalazioni, feedback) + pipeline adozioni + stato colonie
+### 🏛️ Comune
+| Pagina | File | Note |
+|---|---|---|
+| Mappa territoriale | `TerritorialMap.tsx` | Colonie |
+| Statistiche | `MunicipalityStats.tsx` | Recharts |
+| Segnalazioni | `MunicipalityReports.tsx` | Gestione stati |
+| Profilo comune | `MunicipalityProfile.tsx` | |
 
-### 🔔 Sistema Segnalazioni Beta
-- FAB flottante su ogni vista per tutti gli utenti
-- 5 categorie: Bug, Feature, UX scarsa, Errore logico, Dominio
-- Cattura automatica debug context (path, ruolo, viewport, snapshot Zustand)
-- Archiviazione locale (mock, pronto per invio BE)
+### 🗺️ Community
+| Pagina | File | Note |
+|---|---|---|
+| Mappa esplorazione | `ExploreMap.tsx` | Gatti vicini |
+| Feed community | `CommunityFeed.tsx` | |
+| Gatti scomparsi | `MissingCats.tsx` | Segnalazione e ricerca |
 
-### 🌍 i18n & UX
-- Italiano/Inglese con detection automatica
-- Transizioni pagina Framer Motion
-- Design mobile-first con bottom nav adattiva
-- Smart filter riutilizzabile (search + chips + drawer avanzato)
-- Notifiche con drawer + badge contatore
+### 💎 Premium
+| Pagina | File | Note |
+|---|---|---|
+| Wallet spese | `PremiumWallet.tsx` | Tracciamento costi |
+| Calendario premium | `PremiumCalendar.tsx` | Appuntamenti pagati |
+| Programma loyalty | `LoyaltyProgram.tsx` | Punti e badge |
+| Shop | `PremiumShop.tsx` | Prodotti |
+| Servizi premium | `PremiumServices.tsx` | |
+| Pricing | `Pricing.tsx` | Piani |
+
+### ⚙️ Admin
+| Pagina | File | Note |
+|---|---|---|
+| Gestione utenti | `AdminUsers.tsx` | CRUD + ruoli |
+| Audit log | `AuditLog.tsx` | Log immutabile |
+| Broadcast | `AdminBroadcast.tsx` | Notifiche di sistema |
+| Feature flags | `FeatureFlags.tsx` | Toggle per ruolo |
+| Feedback beta | `AdminFeedback.tsx` | Segnalazioni utenti |
+| Deleghe enti | `EntityDelegation.tsx` | Shelter/Municipality |
+
+### 👤 Profili per Ruolo
+| Pagina | File | Note |
+|---|---|---|
+| Profilo adottante | `AdopterProfile.tsx` | |
+| Profilo volontario | `VolunteerProfile.tsx` | |
+| Profilo rifugio | `ShelterProfile.tsx` | |
+| Profilo comune | `MunicipalityProfile.tsx` | |
+
+### 📚 Info & Tutorial
+| Pagina | File | Note |
+|---|---|---|
+| Dashboard | `Dashboard.tsx` | KPI + pipeline |
+| About | `About.tsx` | Statica |
+| Roadmap | `Roadmap.tsx` | Statica |
+| Tutorial Ente | `TutorialEnte.tsx` | Statica |
+| Tutorial Adottante | `TutorialAdottante.tsx` | Statica |
+| Tutorial Volontario | `TutorialVolontario.tsx` | Statica |
+
+> ~20 route puntano a `<ComingSoon />` — placeholder per sezioni future.
+
+---
+
+## 🗃️ Store Zustand (20)
+
+| Store | Dominio | Mock density |
+|---|---|---|
+| `authStore` | Auth + ruoli | 🔴 mock — Fase 1 |
+| `shelterCatStore` | Gatti rifugio | 🔴 DEMO_SHELTER_CATS |
+| `adoptionStore` | Adozioni | 🟡 struttura ok |
+| `usersStore` | Utenti | 🔴 da mockUsers |
+| `volunteerStore` | Task + staffette | 🔴 DEMO data |
+| `campaignStore` | Campagne | 🔴 MOCK |
+| `municipalityStore` | Colonie + segnalazioni | 🔴 DEMO data |
+| `shelterStore` | Profilo rifugio | 🟡 |
+| `auditStore` | Log admin | 🟡 generato da azioni |
+| `notificationStore` | Notifiche | 🔴 MOCK |
+| `delegationStore` | Deleghe | 🔴 MOCK |
+| `healthRecordStore` | Cartelle cliniche | 🔴 DEMO |
+| `missingCatStore` | Gatti scomparsi | 🔴 MOCK |
+| `matchingProfileStore` | Abbinamento | 🔴 MOCK |
+| `homeVerificationStore` | Verifica domicilio | 🟡 |
+| `walletStore` | Spese premium | 🔴 MOCK_EXPENSES |
+| `loyaltyStore` | Loyalty | 🔴 MOCK |
+| `tierStore` | Piani premium | 🟡 config |
+| `featureFlagStore` | Feature toggle | 🟡 config |
+| `feedbackStore` | Beta feedback | 🟡 locale |
+
+---
+
+## 👥 Ruoli (12)
+
+`adopter` | `volunteer` | `shelter` | `municipality` | `veterinarian` | `behaviorist` | `catSitter` | `relayDriver` | `fosterFamily` | `breeder` | `artisan` | `admin`
+
+Ogni ruolo ha: bottom nav filtrata, feature flags dedicati, tutorial specifico, profilo ruolo.
 
 ---
 
 ## 🧪 Utenti Mock per Test
 
-| Email | Password | Ruoli |
+| Email | Password | Ruolo principale |
 |---|---|---|
-| `admin@citycat.it` | `admin123` | Admin |
-| `mario@citycat.it` | `gatto123` | Adottante, Volontario |
-| `luna@citycat.it` | `micio456` | Adottante |
-| `rifugio@citycat.it` | `shelter1` | Rifugio |
-| `comune@citycat.it` | `comune1` | Comune |
-| `staffetta@citycat.it` | `relay123` | Staffettista |
+| `admin@citycat.it` | `admin123` | admin |
+| `mario@citycat.it` | `gatto123` | adopter, volunteer |
+| `luna@citycat.it` | `micio456` | adopter |
+| `rifugio@citycat.it` | `shelter1` | shelter |
+| `comune@citycat.it` | `comune1` | municipality |
+| `staffetta@citycat.it` | `relay123` | relayDriver |
+| `vet@citycat.it` | `vet123` | veterinarian |
+| `behav@citycat.it` | `behav123` | behaviorist |
+| `sitter@citycat.it` | `sitter123` | catSitter |
+| `test@citycat.it` | `test123` | adopter |
+
+> Questi utenti esistono solo in `src/lib/mockUsers.ts` — eliminati in Fase 1 del piano rimozione mock.
 
 ---
 
@@ -155,18 +226,19 @@ src/
 
 | Variabile | Default | Descrizione |
 |---|---|---|
-| `VITE_DEMO_MODE` | `true` | Abilita fallback dati mock |
-| `VITE_API_BASE_URL` | `https://api.citycat.example` | Base URL API backend |
+| `VITE_DEMO_MODE` | `true` | `true` = dati mock locali, nessuna chiamata API |
+| `VITE_API_BASE_URL` | `https://api.citycat.example` | Base URL backend REST |
 
 ---
 
 ## 🚀 Quick Start
 
 ```sh
-git clone <YOUR_GIT_URL>
-cd city-cat
+git clone git@github-privato:awesomecit/citycat.app.git
+cd citycat.app
 npm install
 npm run dev
+# Apre su http://localhost:5173 con DEMO_MODE=true
 ```
 
 ---
